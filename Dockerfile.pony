@@ -21,6 +21,10 @@ RUN comfy model download --url "https://github.com/zg-claude/muse-comfy-worker/r
       --relative-path models/loras --filename roxy_pony.safetensors
 
 # --- FaceDetailer node + deps (iterate here; models above stay cached) ---
+RUN --mount=type=secret,id=civitai \
+    CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/3074764" \
+      --relative-path models/loras --filename uvg5.safetensors
 RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
 # Install the nodes' OWN requirements (Impact Pack imports segment-anything at LOAD time even
 # without the SAM path, so hand-picking deps and dropping it makes FaceDetailer silently fail

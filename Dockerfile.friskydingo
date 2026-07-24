@@ -15,6 +15,10 @@ RUN comfy model download \
       --relative-path models/ultralytics/bbox --filename face_yolov8m.pt
 RUN comfy model download --url "https://github.com/zg-claude/muse-comfy-worker/releases/download/loras-v1/roxy_illust.safetensors" \
       --relative-path models/loras --filename roxy_illust.safetensors
+RUN --mount=type=secret,id=civitai \
+    CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/3074764" \
+      --relative-path models/loras --filename uvg5.safetensors
 RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
 RUN for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
     pip install --no-cache-dir opencv-python-headless "numpy<2"
