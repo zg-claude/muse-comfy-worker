@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1.7
+# PONY + DETECTORS, the minimal-delta anatomy image (Fable, Jul 25).
+# FROM the EXACT digest the working muse-cyberrealistic_pony endpoint runs in production TODAY
+# (gens + face-detail daily). We add ONLY the 3 detector .pt files (~260MB) - zero pip installs,
+# zero dependency changes, the torch/numpy stack stays byte-identical to proven-working.
+# Every fresh-built image has crashed on gen (base tag mutated upstream -> dep drift); this
+# sidesteps rebuilding entirely.
+FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:9cbbd5af814b39bfe84bac135e2c728e3b672fc9023b71447367eae3c654bf73
+
+RUN comfy model download --url "https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt" \
+      --relative-path models/ultralytics/bbox --filename hand_yolov8s.pt
+RUN comfy model download --url "https://huggingface.co/NSFW-API/NSFW_Segmentation/resolve/main/nsfw-seg-vagina-x.pt" \
+      --relative-path models/ultralytics/segm --filename nsfw-seg-vagina-x.pt
+RUN comfy model download --url "https://huggingface.co/NSFW-API/NSFW_Segmentation/resolve/main/nsfw-seg-breast-x.pt" \
+      --relative-path models/ultralytics/segm --filename nsfw-seg-breast-x.pt
