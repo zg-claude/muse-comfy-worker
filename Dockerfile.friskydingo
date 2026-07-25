@@ -13,6 +13,11 @@ RUN comfy model download \
 RUN comfy model download \
       --url "https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt" \
       --relative-path models/ultralytics/bbox --filename face_yolov8m.pt
+# Hand detector for --hand-detail (body-part detailers, #12). Same HF source + bbox dir as the
+# face detector; genphoto chains an FD_hand FaceDetailer node after the face pass.
+RUN comfy model download \
+      --url "https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt" \
+      --relative-path models/ultralytics/bbox --filename hand_yolov8s.pt
 RUN comfy model download --url "https://github.com/zg-claude/muse-comfy-worker/releases/download/loras-v1/roxy_illust.safetensors" \
       --relative-path models/loras --filename roxy_illust.safetensors
 RUN --mount=type=secret,id=civitai \
