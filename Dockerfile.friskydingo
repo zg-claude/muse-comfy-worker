@@ -18,6 +18,14 @@ RUN comfy model download \
 RUN comfy model download \
       --url "https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt" \
       --relative-path models/ultralytics/bbox --filename hand_yolov8s.pt
+# Anatomy detectors for --anatomy-detail (#12). NSFW segmentation YOLO, public/tokenless HF,
+# into the segm/ dir. genphoto chains FD_pussy + FD_nips passes; self-gating (no-op if unseen).
+RUN comfy model download \
+      --url "https://huggingface.co/NSFW-API/NSFW_Segmentation/resolve/main/nsfw-seg-vagina-x.pt" \
+      --relative-path models/ultralytics/segm --filename nsfw-seg-vagina-x.pt
+RUN comfy model download \
+      --url "https://huggingface.co/NSFW-API/NSFW_Segmentation/resolve/main/nsfw-seg-breast-x.pt" \
+      --relative-path models/ultralytics/segm --filename nsfw-seg-breast-x.pt
 RUN comfy model download --url "https://github.com/zg-claude/muse-comfy-worker/releases/download/loras-v1/roxy_illust.safetensors" \
       --relative-path models/loras --filename roxy_illust.safetensors
 RUN --mount=type=secret,id=civitai \
