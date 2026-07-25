@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [step1]
+        image: [copytest]
     steps:
       - uses: actions/checkout@v4
       - name: Gate
