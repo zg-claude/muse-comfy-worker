@@ -1,0 +1,7 @@
+# syntax=docker/dockerfile:1.7
+# LADDER RUNG 1: vendor base + exactly ONE model on LOCAL disk. Nothing else - no impact-pack,
+# no numpy pin, no extra_model_paths, no volume. Proves base ComfyUI + a local checkpoint gens.
+FROM runpod/worker-comfyui:5.8.6-base
+RUN comfy model download \
+      --url "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" \
+      --relative-path models/checkpoints --filename juggernaut.safetensors
