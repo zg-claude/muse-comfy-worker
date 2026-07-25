@@ -4,7 +4,9 @@
 # detectors, and DROP sam2 - the ~10GB hog impact-subpack pulls that made friskydingo (~30GB) too fat
 # to boot. The YOLO segm anatomy detectors run via UltralyticsDetectorProvider and do NOT need sam2.
 # Target ~22GB, like the kodorail image that boots fine. cyberrealistic_pony = Zach's main model.
-FROM runpod/worker-comfyui:5.8.6-base
+# Base pinned by DIGEST - the mutable :5.8.6-base tag was updated in place (now torch 2.12.0
+# built against numpy 2.4.6), which is how fresh builds silently drifted from the working images.
+FROM runpod/worker-comfyui@sha256:52a6c9cb8cdd9398eac42485ac485d024873f66d69f1a10f9d008dd159cbd091
 
 # --- checkpoint + skin refiner + LoRAs (baked; region-free) ---
 RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
@@ -33,5 +35,10 @@ RUN comfy model download --url "https://huggingface.co/NSFW-API/NSFW_Segmentatio
 # node never registered -> all detailers failed. sam2 stays; it only saved 3GB and 30GB images
 # boot fine region-free, so leanness was not worth a broken detailer chain). numpy<2 pinned LAST.
 RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
-RUN for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
-    pip install --no-cache-dir opencv-python-headless "numpy<2"
+# NO numpy<2 pin. The old "MANDATORY numpy<2" guidance inverted when the base updated to
+# torch 2.12.0 (built against numpy 2.4.6): downgrading numpy now CAUSES the ABI segfault it
+# used to prevent (exit 1 at gen time, no traceback - the Jul 25 crash signature). Keep the
+# base's own numpy; just restore it if a node requirement downgraded it.
+RUN NUMPY_VER=$(pip show numpy | awk '/^Version:/{print $2}') && \
+    for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
+    pip install --no-cache-dir opencv-python-headless "numpy==$NUMPY_VER"
