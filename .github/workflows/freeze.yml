@@ -1,0 +1,20 @@
+name: freeze
+on:
+  workflow_dispatch:
+  push:
+    paths: [.github/workflows/freeze.yml]
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: read }
+    steps:
+      - name: Free disk
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache /usr/local/.ghcup /usr/lib/jvm /opt/az || true
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' }
+      - name: pip freeze of the WORKING kodorail image (gens fine) + the base
+        run: |
+          echo "================ BASE IMAGE torch stack ================"
+          docker run --rm runpod/worker-comfyui:5.8.6-base pip list --format=freeze 2>/dev/null | grep -iE "^(torch|torchvision|torchaudio|torchsde|xformers|numpy|opencv|ultralytics|sam2|segment)" || true
+          echo "================ WORKING kodorail full freeze ================"
+          docker run --rm ghcr.io/zg-claude/muse-comfy-worker:kodorail pip list --format=freeze 2>/dev/null | grep -iE "^(torch|torchvision|torchaudio|torchsde|xformers|numpy|opencv|ultralytics|sam2|segment|scikit|scipy|pillow|impact)" || true
