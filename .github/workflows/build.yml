@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [copytest]
+        image: [pony_anatomy]
     steps:
       - uses: actions/checkout@v4
       - name: Gate
@@ -47,3 +47,5 @@ jobs:
           tags: ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}
           cache-from: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}-cache
           cache-to: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}-cache,mode=max
+          secrets: |
+            civitai=${{ secrets.CIVITAI_TOKEN }}
