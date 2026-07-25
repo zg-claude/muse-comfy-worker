@@ -1,0 +1,21 @@
+# Muse serverless workers read EVERY model from the RunPod network volume
+# (hf1f5zarw3, US-IL-1), mounted at /runpod-volume. Nothing is baked into the image -
+# that is the whole point of the slim refactor (30GB images -> ~2GB).
+#
+# Dual folder names are mapped on purpose: ComfyUI renamed "unet" -> "diffusion_models"
+# and "clip" -> "text_encoders" across versions, and genphoto's chroma graph uses the
+# newer loaders. Pointing BOTH names at the same volume subdir means either graph
+# resolves without caring which name a node asks for.
+runpod_volume:
+    base_path: /runpod-volume/ComfyUI/models/
+    checkpoints: checkpoints
+    loras: loras
+    vae: vae
+    clip: clip
+    text_encoders: clip
+    diffusion_models: diffusion_models
+    unet: diffusion_models
+    ultralytics_bbox: ultralytics/bbox
+    ultralytics_segm: ultralytics/segm
+    embeddings: embeddings
+    upscale_models: upscale_models

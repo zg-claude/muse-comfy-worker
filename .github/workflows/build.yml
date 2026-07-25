@@ -6,9 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       only:
-        description: "build only this model (pony|illustrious), or blank for all"
+        description: "build only this image (sdxl|flux), or blank for all"
         default: ""
 
+# Slim images (Jul 25): no model weights baked - workers read models off the RunPod network
+# volume at /runpod-volume. So there are just TWO images: sdxl (all SDXL/Pony/Illustrious
+# endpoints) and flux (chroma/krea). No CIVITAI secret needed anymore - nothing is downloaded
+# at build time.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,17 +22,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        model: [pony, illustrious, chroma1-hd, friskydingo, lustify_zenith, juggernaut]
+        image: [sdxl, flux]
     steps:
       - uses: actions/checkout@v4
       - name: Gate
         id: g
         run: |
           only="${{ github.event.inputs.only }}"
-          if [ -z "$only" ] || [ "$only" = "${{ matrix.model }}" ]; then echo "run=yes" >> $GITHUB_OUTPUT; else echo "run=no" >> $GITHUB_OUTPUT; fi
-      - name: Free disk
-        if: steps.g.outputs.run == 'yes'
-        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache /usr/local/.ghcup /usr/lib/jvm /opt/az || true
+          if [ -z "$only" ] || [ "$only" = "${{ matrix.image }}" ]; then echo "run=yes" >> $GITHUB_OUTPUT; else echo "run=no" >> $GITHUB_OUTPUT; fi
       - uses: docker/setup-buildx-action@v3
         if: steps.g.outputs.run == 'yes'
       - uses: docker/login-action@v3
@@ -41,10 +42,8 @@ jobs:
         if: steps.g.outputs.run == 'yes'
         with:
           context: .
-          file: Dockerfile.${{ matrix.model }}
+          file: Dockerfile.${{ matrix.image }}
           push: true
-          tags: ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.model }}
-          cache-from: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.model }}-cache
-          cache-to: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.model }}-cache,mode=max
-          secrets: |
-            civitai=${{ secrets.CIVITAI_TOKEN }}
+          tags: ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}
+          cache-from: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}-cache
+          cache-to: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}-cache,mode=max

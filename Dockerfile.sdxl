@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+# SLIM SDXL/Pony/Illustrious worker. Carries NO model weights - every checkpoint, LoRA, skin
+# refiner and detector is read off the RunPod network volume mounted at /runpod-volume (see
+# extra_model_paths.yaml). ONE image serves ALL SDXL-family endpoints (pony, illustrious,
+# friskydingo, lustify_zenith, juggernaut); the checkpoint is just a filename the graph picks.
+# ~2GB vs the old ~30GB baked images.
+FROM runpod/worker-comfyui:5.8.6-base
+
+# Point ComfyUI at the volume. Auto-loaded from the ComfyUI base dir at startup.
+COPY extra_model_paths.yaml /comfyui/extra_model_paths.yaml
+
+# Detailer nodes are CODE, not weights, so they stay in the image (the yolo detector .pt files
+# live on the volume). Impact Pack pulls ultralytics + sam2 via its requirements; then pin
+# numpy<2 LAST - numpy 2.x is ABI-incompatible with the base torch/opencv (worker goes unhealthy).
+RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
+RUN for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
+    pip install --no-cache-dir opencv-python-headless "numpy<2"
