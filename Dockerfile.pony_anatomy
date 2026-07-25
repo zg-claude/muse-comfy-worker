@@ -29,11 +29,9 @@ RUN comfy model download --url "https://huggingface.co/NSFW-API/NSFW_Segmentatio
 RUN comfy model download --url "https://huggingface.co/NSFW-API/NSFW_Segmentation/resolve/main/nsfw-seg-breast-x.pt" \
       --relative-path models/ultralytics/segm --filename nsfw-seg-breast-x.pt
 
-# --- detailer nodes, WITHOUT sam2 (the big drop) ---
+# --- detailer nodes: FULL install (dropping sam2 broke impact-pack's import -> FaceDetailer
+# node never registered -> all detailers failed. sam2 stays; it only saved 3GB and 30GB images
+# boot fine region-free, so leanness was not worth a broken detailer chain). numpy<2 pinned LAST.
 RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
-# install node requirements but EXCLUDE sam2 (only SAMDetector needs it; we use Ultralytics detectors).
-RUN for r in /comfyui/custom_nodes/*/requirements.txt; do \
-      grep -viE 'sam[-_]?2|segment[-_]?anything' "$r" > /tmp/req.txt || true; \
-      pip install --no-cache-dir -r /tmp/req.txt || true; \
-    done && \
-    pip install --no-cache-dir ultralytics opencv-python-headless "numpy<2"
+RUN for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
+    pip install --no-cache-dir opencv-python-headless "numpy<2"
