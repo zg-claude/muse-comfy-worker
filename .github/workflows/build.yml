@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [pony_anatomy, ponyd, kodoraild]
+        image: [lustify]
     steps:
       - uses: actions/checkout@v4
       - name: Gate

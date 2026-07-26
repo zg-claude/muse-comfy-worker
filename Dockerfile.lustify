@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.7
+# LUSTIFY, rebuilt the Jul 26 way (Zach: "get lustify working" = the digest-layer fix, not a fresh
+# build). The old :lustify_zenith image was a fresh build that pulled drifted deps -> worker booted
+# but crashed on the first CUDA kernel at gen time (proven: identical minimal gen COMPLETES on pony,
+# HANGS on lustify; the image wouldn't even boot ComfyUI as a pod). Fix = build FROM the PINNED good
+# base digest (the same one the verified-working pony_anatomy/kodoraild use), which carries the
+# working torch/numpy. Only the checkpoint + Roxy LoRA differ from pony_anatomy.
+FROM runpod/worker-comfyui@sha256:52a6c9cb8cdd9398eac42485ac485d024873f66d69f1a10f9d008dd159cbd091
+
+# --- checkpoint (lustify_zenith V9) + skin refiner + LoRAs ---
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/3045803" \
+      --relative-path models/checkpoints --filename lustify_zenith.safetensors
+RUN comfy model download \
+      --url "https://huggingface.co/RunDiffusion/Juggernaut-XL-v9/resolve/main/Juggernaut-XL_v9_RunDiffusionPhoto_v2.safetensors" \
+      --relative-path models/checkpoints --filename juggernaut.safetensors
+RUN comfy model download --url "https://github.com/zg-claude/muse-comfy-worker/releases/download/loras-v1/roxy_sdxl.safetensors" \
+      --relative-path models/loras --filename roxy_sdxl.safetensors
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/3074764" \
+      --relative-path models/loras --filename uvg5.safetensors
+
+# --- face detailer (matches the working images; --face-detail path) ---
+RUN comfy model download --url "https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt" \
+      --relative-path models/ultralytics/bbox --filename face_yolov8m.pt
+
+# --- detailer nodes: FULL install, keep the base's own numpy (numpy<2 pin would ABI-crash on this base) ---
+RUN comfy-node-install comfyui-impact-pack comfyui-impact-subpack
+RUN NUMPY_VER=$(pip show numpy | awk '/^Version:/{print $2}') && \
+    for r in /comfyui/custom_nodes/*/requirements.txt; do pip install --no-cache-dir -r "$r" || true; done && \
+    pip install --no-cache-dir opencv-python-headless "numpy==$NUMPY_VER"
