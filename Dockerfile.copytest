@@ -1,7 +1,0 @@
-# syntax=docker/dockerfile:1.7
-# LADDER: confirm the fix. base + boot-time COPY of one checkpoint volume->local, then normal start.
-# No impact-pack, no extra_model_paths. If a plain gen works here, mmap-off-volume was the crash.
-FROM runpod/worker-comfyui:5.8.6-base
-COPY copy_models.sh /copy_models.sh
-RUN chmod +x /copy_models.sh
-CMD ["/bin/bash","-lc","/copy_models.sh && exec /start.sh"]
