@@ -1,9 +1,11 @@
 # syntax=docker/dockerfile:1.7
-# KREA2 baked worker (Flux.1-Krea family, TURBO). BAKED region-free per atlas/docs/muse-infra.md.
-# krea2 UNet pulled with boto3 (SigV4 HEADER auth) from our RunPod volume - RunPod S3 rejects
-# query-string presigned URLs (403); comfy-download and curl also failed. Creds via build secrets
-# (no layer leak). Model is baked in; secrets never persist.
-FROM runpod/worker-comfyui:5.8.6-base
+# KREA2 baked worker (Flux-family/T5, TURBO), built FROM the PROVEN chroma image digest rather than
+# a fresh worker-comfyui base (Zach, Jul 27: "should you use the older worker-comfy" - yes).
+# Fresh 5.8.6-base pulls a torch whose kernels need a newer NVIDIA driver than RunPod hosts have,
+# so workers crash on start (exit 1). The chroma digest has 83 successful renders on these GPUs.
+# It ALREADY contains t5xxl_fp16 + ae (same Flux deps krea needs) - so we only add the krea UNet.
+# Model comes from our RunPod volume via boto3 (SigV4 header auth; RunPod S3 rejects presigned URLs).
+FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:bbd91256983f069515245f51e94e009519e42376160c27c73fb001412f014813
 RUN pip install --no-cache-dir boto3
 RUN --mount=type=secret,id=s3key --mount=type=secret,id=s3secret python3 <<'PYEOF'
 import boto3, os
@@ -17,14 +19,7 @@ s3.download_file("hf1f5zarw3", "ComfyUI/models/diffusion_models/krea2_center_sem
                  "/comfyui/models/unet/krea2_center_semiraw.safetensors")
 print("krea2 download complete", flush=True)
 PYEOF
-RUN comfy model download \
-      --url "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
-      --relative-path models/text_encoders --filename t5xxl_fp16.safetensors
-RUN comfy model download \
-      --url "https://huggingface.co/sirorable/flux-ae-vae/resolve/main/ae.safetensors" \
-      --relative-path models/vae --filename ae.safetensors
-
-# Flux.1-D LoRA (Ashlynn, civitai 1661696) - proves whether Flux.1-dev LoRAs load on Krea.
+# Flux.1-D LoRA (Ashlynn, civitai 1661696) - tests whether Flux.1-dev LoRAs load on Krea.
 RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
     comfy model download --url "https://civitai.com/api/download/models/1661696" \
       --relative-path models/loras --filename ashlynn_flux.safetensors
