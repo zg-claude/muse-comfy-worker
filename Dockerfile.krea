@@ -23,3 +23,8 @@ RUN comfy model download \
 RUN comfy model download \
       --url "https://huggingface.co/sirorable/flux-ae-vae/resolve/main/ae.safetensors" \
       --relative-path models/vae --filename ae.safetensors
+
+# Flux.1-D LoRA (Ashlynn, civitai 1661696) - proves whether Flux.1-dev LoRAs load on Krea.
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/1661696" \
+      --relative-path models/loras --filename ashlynn_flux.safetensors

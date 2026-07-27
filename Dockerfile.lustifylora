@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1.7
+# LUSTIFY + realistic-persona SDXL LoRAs, layered on the DEPLOYED lustify image (no dep drift).
+# SDXL 1.0 persona LoRAs only work on a vanilla-SDXL base - pony/kodorail have diverged too far
+# (atlas/docs/muse-infra.md). Triggers: "woman033", "ashlynn_spektre_xl".
+FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:a143048c0c21f542f14cd1d7a910b37f346744e58d6dcd95c2a4e1f1b22eb3c9
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/2013091" \
+      --relative-path models/loras --filename woman033.safetensors
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/625068" \
+      --relative-path models/loras --filename ashlynn_xl.safetensors

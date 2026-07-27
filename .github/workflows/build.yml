@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [krea]
+        image: [krea, lustifylora]
     steps:
       - uses: actions/checkout@v4
       - name: Gate
