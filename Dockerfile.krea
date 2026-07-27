@@ -1,0 +1,14 @@
+# syntax=docker/dockerfile:1.7
+# KREA2 baked worker (Flux-family/T5, TURBO). BAKED region-free image per atlas/docs/muse-infra.md -
+# NOT the broken volume approach (Zach, Jul 27: krea's volume+serverless path was the ~$1-2k dead end).
+# genphoto is_chroma graph: UNETLoader(krea2 fp8) + CLIPLoader(t5xxl, chroma) + VAELoader(ae).
+FROM runpod/worker-comfyui:5.8.6-base
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/2734469" \
+      --relative-path models/unet --filename krea2_center_semiraw.safetensors
+RUN comfy model download \
+      --url "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
+      --relative-path models/text_encoders --filename t5xxl_fp16.safetensors
+RUN comfy model download \
+      --url "https://huggingface.co/sirorable/flux-ae-vae/resolve/main/ae.safetensors" \
+      --relative-path models/vae --filename ae.safetensors
