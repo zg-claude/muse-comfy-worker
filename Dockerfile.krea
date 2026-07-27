@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
 # KREA2 baked worker (Flux-family/T5, TURBO). BAKED region-free image per atlas/docs/muse-infra.md.
-# Model pulled from a PRESIGNED S3 URL of our own volume (the civitai id 2734469 404s; the file is on
-# the volume). URL is temporary (expires) - it only matters during this build; the model is baked in.
+# krea2 UNet pulled by plain curl from a PRESIGNED S3 URL of our own volume - `comfy model download`
+# only speaks civitai/HF and 401s on an S3 URL. URL is temporary; the model is baked in.
 FROM runpod/worker-comfyui:5.8.6-base
-RUN comfy model download --url "https://s3api-us-il-1.runpod.io/hf1f5zarw3/ComfyUI/models/diffusion_models/krea2_center_semiraw.safetensors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user_3GiwbPjhOyCJI0MQNcnjUUwEjWB%2F20260727%2FUS-IL-1%2Fs3%2Faws4_request&X-Amz-Date=20260727T110005Z&X-Amz-Expires=10800&X-Amz-SignedHeaders=host&X-Amz-Signature=ede113af8e2b5adc74edac37a236e2f18af23670ad93148b4d86618d96a7ae9f" \
-      --relative-path models/unet --filename krea2_center_semiraw.safetensors
+RUN mkdir -p /comfyui/models/unet && \
+    curl -fSL --retry 3 "https://s3api-us-il-1.runpod.io/hf1f5zarw3/ComfyUI/models/diffusion_models/krea2_center_semiraw.safetensors?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=user_3GiwbPjhOyCJI0MQNcnjUUwEjWB%2F20260727%2FUS-IL-1%2Fs3%2Faws4_request&X-Amz-Date=20260727T110524Z&X-Amz-Expires=14400&X-Amz-SignedHeaders=host&X-Amz-Signature=7739f3add3ae2732b6296238240dd523cdf89bd5ccf75ea98139c92c4c1e82c1" -o /comfyui/models/unet/krea2_center_semiraw.safetensors
 RUN comfy model download \
       --url "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
       --relative-path models/text_encoders --filename t5xxl_fp16.safetensors
