@@ -1,30 +1,18 @@
 # syntax=docker/dockerfile:1.7
-# KREA2 baked worker. MULTI-STAGE so the runtime image is the PROVEN chroma image plus two model
-# files and NOTHING else.
+# KREA2 baked worker = the PROVEN chroma image + the krea2 UNet + a Flux.1-D LoRA. Nothing else:
+# no pip installs, no S3, no multi-stage. Same shape as the chroma Dockerfile that works.
 #
-# Why: the previous single-stage version ran `pip install boto3` INTO the runtime image to fetch the
-# model. That worker came up unhealthy (exit 1) even though it was built from the chroma digest that
-# has 83 successful renders - installing boto3 drags in botocore/urllib3/dateutil and can break the
-# ComfyUI python env. Model FILES cannot crash a worker; a pip install can. So the download now
-# happens in a throwaway builder stage and only the .safetensors is copied across.
-FROM python:3.11-slim AS fetch
-RUN pip install --no-cache-dir boto3
-RUN --mount=type=secret,id=s3key --mount=type=secret,id=s3secret python3 <<'PYEOF'
-import boto3, os
-os.makedirs("/model", exist_ok=True)
-s3 = boto3.client("s3", endpoint_url="https://s3api-us-il-1.runpod.io",
-    aws_access_key_id=open("/run/secrets/s3key").read().strip(),
-    aws_secret_access_key=open("/run/secrets/s3secret").read().strip(),
-    region_name="US-IL-1")
-print("downloading krea2_center_semiraw (8GB)...", flush=True)
-s3.download_file("hf1f5zarw3", "ComfyUI/models/diffusion_models/krea2_center_semiraw.safetensors",
-                 "/model/krea2_center_semiraw.safetensors")
-print("done", flush=True)
-PYEOF
-
+# ROOT CAUSE of ~6 failed builds (Jul 27): civitai's /api/download/models/<id> takes a VERSION id,
+# not a MODEL id. I used the model id 2734469 -> 404. That 404 sent me to our RunPod volume, which
+# needed boto3, which needed S3 secrets, which broke on presigned URLs, then on missing curl, then
+# a pip install into the runtime image that made the worker exit 1. One wrong number.
+#   model   2734469 = "Krea2_Center_SemiRaw"
+#   version 3075365 = "v1.0 fp8"   <- the correct download id
 FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:bbd91256983f069515245f51e94e009519e42376160c27c73fb001412f014813
-COPY --from=fetch /model/krea2_center_semiraw.safetensors /comfyui/models/unet/krea2_center_semiraw.safetensors
-# Flux.1-D LoRA (Ashlynn, civitai 1661696) - tests whether Flux.1-dev LoRAs load on Krea.
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/3075365" \
+      --relative-path models/unet --filename krea2_center_semiraw.safetensors
+# Flux.1-D LoRA (Ashlynn, civitai version 1661696) - tests whether Flux.1-dev LoRAs load on Krea.
 RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
     comfy model download --url "https://civitai.com/api/download/models/1661696" \
       --relative-path models/loras --filename ashlynn_flux.safetensors

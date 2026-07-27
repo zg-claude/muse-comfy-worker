@@ -56,5 +56,3 @@ jobs:
           cache-to: type=registry,ref=ghcr.io/zg-claude/muse-comfy-worker:${{ matrix.image }}-cache,mode=max
           secrets: |
             civitai=${{ secrets.CIVITAI_TOKEN }}
-            s3key=${{ secrets.S3_ACCESS_KEY }}
-            s3secret=${{ secrets.S3_SECRET_KEY }}
