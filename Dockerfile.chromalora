@@ -1,0 +1,6 @@
+# syntax=docker/dockerfile:1.7
+# Bake ashlynn_chroma LoRA onto the EXACT deployed chroma image (digest bbd91...) - no rebuild, no
+# dep drift, just an ~18MB layer so the chroma worker's loras dir is non-empty (Zach, Jul 27:
+# "get the lora working"). chroma is a BAKED region-free image, NOT volume-mounted (atlas/docs/muse-infra.md).
+FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:bbd91256983f069515245f51e94e009519e42376160c27c73fb001412f014813
+COPY ashlynn_chroma.safetensors /comfyui/models/loras/ashlynn_chroma.safetensors
