@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1.7
+# REGION-FREE baked Chroma worker (Zach, Jul 26): models are BAKED into the image, so this
+# endpoint needs NO network volume and can run in ANY datacenter that has GPUs - dodging the
+# US-IL-1 GPU-starvation that pins the slim/volume image. ~22GB image. genphoto's is_chroma graph:
+# UNETLoader(fp8) + CLIPLoader(t5xxl, type chroma) + VAELoader(ae) + LoraLoaderModelOnly.
+FROM runpod/worker-comfyui:5.8.6-base
+
+RUN comfy model download \
+      --url "https://huggingface.co/lodestones/Chroma1-HD/resolve/main/Chroma1-HD.safetensors" \
+      --relative-path models/unet --filename Chroma1-HD.safetensors
+RUN comfy model download \
+      --url "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors" \
+      --relative-path models/text_encoders --filename t5xxl_fp16.safetensors
+RUN comfy model download \
+      --url "https://huggingface.co/sirorable/flux-ae-vae/resolve/main/ae.safetensors" \
+      --relative-path models/vae --filename ae.safetensors
+RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
+    comfy model download --url "https://civitai.com/api/download/models/2210127" \
+      --relative-path models/loras --filename ashlynn_chroma.safetensors
