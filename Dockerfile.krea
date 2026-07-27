@@ -1,17 +1,19 @@
 # syntax=docker/dockerfile:1.7
-# KREA2 baked worker = the PROVEN chroma image + the krea2 UNet + a Flux.1-D LoRA. Nothing else:
-# no pip installs, no S3, no multi-stage. Same shape as the chroma Dockerfile that works.
+# KREA2 baked worker = the PROVEN chroma image + the OFFICIAL Krea 2 Turbo UNet + a Flux.1-D LoRA.
+# No pip installs, no S3, no multi-stage - same shape as the chroma Dockerfile that works.
 #
-# ROOT CAUSE of ~6 failed builds (Jul 27): civitai's /api/download/models/<id> takes a VERSION id,
-# not a MODEL id. I used the model id 2734469 -> 404. That 404 sent me to our RunPod volume, which
-# needed boto3, which needed S3 secrets, which broke on presigned URLs, then on missing curl, then
-# a pip install into the runtime image that made the worker exit 1. One wrong number.
-#   model   2734469 = "Krea2_Center_SemiRaw"
-#   version 3075365 = "v1.0 fp8"   <- the correct download id
+# MODEL CHOICE (Zach, Jul 27: "i dont want some weird thing thats half baked. Never asked for it"):
+# use the OFFICIAL Comfy-Org Krea 2 Turbo checkpoint, NOT the community "Krea2_Center_SemiRaw"
+# variant that an earlier session picked with no recorded rationale. Krea exists to answer "does the
+# Flux.1-dev LoRA ecosystem work for us" - a niche community merge adds an unknown to that test.
+#   model   2726029 = "Krea 2 Turbo Official Comfy-Org Checkpoints"
+#   version 3064297 = "krea2_turbo_fp8"   <- the correct DOWNLOAD id (civitai wants a VERSION id;
+#                                            using a MODEL id 404s - that mistake caused ~6 failed
+#                                            builds and every S3/boto3 workaround since.)
 FROM ghcr.io/zg-claude/muse-comfy-worker@sha256:bbd91256983f069515245f51e94e009519e42376160c27c73fb001412f014813
 RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
-    comfy model download --url "https://civitai.com/api/download/models/3075365" \
-      --relative-path models/unet --filename krea2_center_semiraw.safetensors
+    comfy model download --url "https://civitai.com/api/download/models/3064297" \
+      --relative-path models/unet --filename krea2_turbo.safetensors
 # Flux.1-D LoRA (Ashlynn, civitai version 1661696) - tests whether Flux.1-dev LoRAs load on Krea.
 RUN --mount=type=secret,id=civitai CIVITAI_API_TOKEN="$(cat /run/secrets/civitai)" \
     comfy model download --url "https://civitai.com/api/download/models/1661696" \
