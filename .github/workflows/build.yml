@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [lustify, chromabaked]
+        image: [lustify]
     steps:
       - uses: actions/checkout@v4
       - name: Gate
